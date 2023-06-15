@@ -14,4 +14,13 @@ public class Event {
     private String address;
     private String img;
     private String startDate;
+
+    @Override
+    public String toString() {
+        return '\'' + name + '\'' +
+                "\nType: " + description +
+                "\nAddress: " + address +
+                "\nDate: " + startDate +
+                "\nURL: " + url;
+    }
 }

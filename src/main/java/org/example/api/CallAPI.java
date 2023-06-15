@@ -15,7 +15,7 @@ import java.util.Properties;
 public class CallAPI {
 
     @SneakyThrows
-    public static void main(String[] args) {
+    public static List<Event> findEvents() {
 
         Properties properties = new Properties();
         try (FileInputStream fis = new FileInputStream("src/main/resources/credentials.properties")) {
@@ -26,15 +26,15 @@ public class CallAPI {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://app.ticketmaster.com/discovery/v2/events.json?size=15&sort=random&apikey=" + apiKey + "&city=tallinn"))
+                .uri(URI.create("https://app.ticketmaster.com/discovery/v2/events.json?size=5&sort=random&apikey=" + apiKey + "&city=hamburg"))
 //                .method("GET")
                 .header("accept", "application/json")
                 .build();
         List<Event> response = client.send(request, new EventBodyHandler()).body();
         response.forEach((ev -> {
-            System.out.println(ev.getName() + "\t" + ev.getStartDate() + "\taddress: " + ev.getAddress() + "\tdescription: " + ev.getDescription() + "\timage href: " + ev.getImg());
+            System.out.println(ev.getName() + "\t" + ev.getStartDate() + "\taddress: " + ev.getAddress() + "\tdescription: " + ev.getDescription() );
         }));
-
+        return response;
     }
 
 }
