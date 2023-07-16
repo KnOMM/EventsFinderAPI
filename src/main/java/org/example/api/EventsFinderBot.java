@@ -8,9 +8,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -22,118 +20,124 @@ import java.util.Properties;
 
 public class EventsFinderBot extends TelegramLongPollingBot {
 
+    private final String greetings = "WELLCOME to events finder bot!!!";
+
+    private final String usecase = "Click on the searching option";
+    private static int state;
+    private static String size;
 
     @Override
     public void onUpdateReceived(Update update) {
 
+        Long chatId = update.getMessage().getChatId();
+
         // We check if the update has a message and the message has text
-        if (update.hasMessage() && update.getMessage().hasText() && !update.getMessage().getText().equals("1")) {
-            SendMessage message = new SendMessage(); // Create a SendMessage object with mandatory fields
-            Long chatId = update.getMessage().getChatId();
-            SendPhoto sendPhoto = new SendPhoto();
-
-            message.setChatId(chatId.toString());
-            sendPhoto.setChatId(chatId.toString());
-
-            SendChatAction sendChatAction = new SendChatAction();
-            sendChatAction.setChatId(chatId.toString());
-            sendChatAction.setAction(ActionType.TYPING);
+        if (update.getMessage().getText().equals("/start") || update.getMessage().getText().equals("Back")) {
+            entryKeyboard(chatId.toString(), greetings);
+        } else if (update.getMessage().getText().equals("Latest date events")) {
+            EventsFinderBot.state = 1;
+            SendMessage ask = new SendMessage();
+            ask.setChatId(chatId.toString());
+            ask.setText("Enter a number of events you want to see");
             try {
-                for (Event event : CallAPI.findEvents()) {
-                    String eventString = event.toString();
-
-                    sendPhoto.setPhoto(new InputFile(event.getImg()));
-                    sendPhoto.setCaption(eventString);
-
-
-//                    message.setText(eventString);
-                    execute(sendChatAction);
-//                    execute(message);
-                    execute(sendPhoto);
-                }
-                execute(message); // Call method to send the message
+                execute(ask);
             } catch (TelegramApiException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
+        } else if (update.getMessage().getText().equals("Popular events")) {
+            EventsFinderBot.state = 2;
+            SendMessage ask = new SendMessage();
+            ask.setChatId(chatId.toString());
+            ask.setText("Enter a number of events you want to see");
+            try {
+                execute(ask);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (update.getMessage().getText().equals("Nearest events")) {
+            EventsFinderBot.state = 3;
+            SendMessage ask = new SendMessage();
+            ask.setChatId(chatId.toString());
+            ask.setText("Enter a number of events you want to see");
+            try {
+                execute(ask);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (EventsFinderBot.state == 1 && isAllDigits(update.getMessage().getText())) {
+            sendMessage(chatId.toString(), "date,desc", update.getMessage().getText());
+            EventsFinderBot.state = 0;
+        } else if (EventsFinderBot.state == 2 && isAllDigits(update.getMessage().getText())) {
+            sendMessage(chatId.toString(), "relevance,desc", update.getMessage().getText());
+            EventsFinderBot.state = 0;
+        } else if (EventsFinderBot.state == 3 && isAllDigits(update.getMessage().getText())) {
+            sendMessage(chatId.toString(), "date,asc", update.getMessage().getText());
+            EventsFinderBot.state = 0;
         } else {
-//            sendCustomKeyboard(update.getMessage().getChatId().toString());
-            sendInlineKeyboard(update.getMessage().getChatId().toString());
+            entryKeyboard(chatId.toString(), usecase);
         }
+
+
     }
 
-    public void sendCustomKeyboard(String chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Custom message text");
+    public boolean isAllDigits(String str) {
+        return str.matches("\\d+");
+    }
 
-        // Create ReplyKeyboardMarkup object
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        // Create the keyboard (list of keyboard rows)
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        // Create a keyboard row
-        KeyboardRow row = new KeyboardRow();
-        // Set each button, you can also use KeyboardButton objects if you need something else than text
-        row.add("Row 1 Button 1");
-        row.add("Row 1 Button 2");
-        row.add("Row 1 Button 3");
-        // Add the first row to the keyboard
-        keyboard.add(row);
-        // Create another keyboard row
+    public void entryKeyboard(String chatId, String words) {
+        SendMessage sendMessage = new SendMessage();
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRowList = new ArrayList<>();
+        KeyboardRow row;
+
         row = new KeyboardRow();
-        // Set each button for the second line
-        row.add("Row 2 Button 1");
-        row.add("Row 2 Button 2");
-        row.add("Row 2 Button 3");
-        // Add the second row to the keyboard
-        keyboard.add(row);
-        // Set the keyboard to the markup
-        keyboardMarkup.setKeyboard(keyboard);
-        // Add it to the message
-        message.setReplyMarkup(keyboardMarkup);
+        row.add("Latest date events");
+        keyboardRowList.add(row);
+
+        row = new KeyboardRow();
+        row.add("Popular events");
+        keyboardRowList.add(row);
+
+        row = new KeyboardRow();
+        row.add("Nearest events");
+        keyboardRowList.add(row);
+
+        replyKeyboardMarkup.setKeyboard(keyboardRowList);
+        sendMessage.setChatId(chatId);
+        sendMessage.setReplyMarkup(replyKeyboardMarkup);
+        sendMessage.setText(words);
 
         try {
-            // Send the message
-            execute(message);
+            execute(sendMessage);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendInlineKeyboard(String chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Inline model below.");
+    public void sendMessage(String chatId, String sort, String size) {
+        SendPhoto sendPhoto = new SendPhoto();
 
-        // Create InlineKeyboardMarkup object
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        // Create the keyboard (list of InlineKeyboardButton list)
-        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-        // Create a list for buttons
-        List<InlineKeyboardButton> Buttons = new ArrayList<InlineKeyboardButton>();
-        // Initialize each button, the text must be written
-        InlineKeyboardButton youtube = new InlineKeyboardButton("youtube");
-        // Also must use exactly one of the optional fields,it can edit  by set method
-        youtube.setUrl("https://www.youtube.com");
-        // Add button to the list
-        Buttons.add(youtube);
-        // Initialize each button, the text must be written
-        InlineKeyboardButton github = new InlineKeyboardButton("github");
-        // Also must use exactly one of the optional fields,it can edit  by set method
-        github.setUrl("https://github.com");
-        // Add button to the list
-        Buttons.add(github);
-        keyboard.add(Buttons);
-        inlineKeyboardMarkup.setKeyboard(keyboard);
-        // Add it to the message
-        message.setReplyMarkup(inlineKeyboardMarkup);
+        sendPhoto.setChatId(chatId);
 
+        SendChatAction sendChatAction = new SendChatAction();
+        sendChatAction.setChatId(chatId);
+        sendChatAction.setAction(ActionType.TYPING);
+        int i = 1;
         try {
-            // Send the message
-            execute(message);
+            for (Event event : CallAPI.findEvents(sort, size)) {
+                String eventString = i++ + ")\n" + event.toString();
+
+                sendPhoto.setPhoto(new InputFile(event.getImg()));
+                sendPhoto.setCaption(eventString);
+                execute(sendChatAction);
+
+                execute(sendPhoto);
+            }
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
+
 
     @Override
     public String getBotUsername() {
@@ -144,7 +148,8 @@ public class EventsFinderBot extends TelegramLongPollingBot {
     public String getBotToken() {
         Properties properties = new Properties();
         try {
-            properties.load(new FileInputStream("src/main/resources/credentials.properties"));
+//            properties.load(new FileInputStream("src/main/resources/credentials.properties"));
+            properties.load(new FileInputStream("target/credentials.properties"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

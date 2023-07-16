@@ -39,4 +39,6 @@ public class EventBodyHandler implements HttpResponse.BodyHandler<List<Event>> {
         }
         return result;
     }
+
+
 }
