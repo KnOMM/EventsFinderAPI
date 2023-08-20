@@ -1,5 +1,6 @@
 package org.example.api;
 
+import org.example.impl.JsoupHandler;
 import org.example.model.Event;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.ActionType;
@@ -34,6 +35,8 @@ public class EventsFinderBot extends TelegramLongPollingBot {
         // We check if the update has a message and the message has text
         if (update.getMessage().getText().equals("/start") || update.getMessage().getText().equals("Back")) {
             entryKeyboard(chatId.toString(), greetings);
+        } else if (update.getMessage().getText().equals("Elbphilharmonie events")) {
+            sendMessageElb(chatId);
         } else if (update.getMessage().getText().equals("Latest date events")) {
             EventsFinderBot.state = 1;
             SendMessage ask = new SendMessage();
@@ -102,6 +105,10 @@ public class EventsFinderBot extends TelegramLongPollingBot {
         row.add("Nearest events");
         keyboardRowList.add(row);
 
+        row = new KeyboardRow();
+        row.add("Elbphilharmonie events");
+        keyboardRowList.add(row);
+
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
         sendMessage.setChatId(chatId);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
@@ -116,7 +123,6 @@ public class EventsFinderBot extends TelegramLongPollingBot {
 
     public void sendMessage(String chatId, String sort, String size) {
         SendPhoto sendPhoto = new SendPhoto();
-
         sendPhoto.setChatId(chatId);
 
         SendChatAction sendChatAction = new SendChatAction();
@@ -126,15 +132,34 @@ public class EventsFinderBot extends TelegramLongPollingBot {
         try {
             for (Event event : CallAPI.findEvents(sort, size)) {
                 String eventString = i++ + ")\n" + event.toString();
-
                 sendPhoto.setPhoto(new InputFile(event.getImg()));
                 sendPhoto.setCaption(eventString);
                 execute(sendChatAction);
-
                 execute(sendPhoto);
             }
         } catch (TelegramApiException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void sendMessageElb(long chatId) {
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(chatId);
+
+        SendChatAction sendChatAction = new SendChatAction();
+        sendChatAction.setChatId(chatId);
+        sendChatAction.setAction(ActionType.TYPING);
+        int i = 1;
+        try {
+            for (Event event : JsoupHandler.main()) {
+                String eventString = i++ + ")\n" + event.toString();
+                sendPhoto.setPhoto(new InputFile(event.getImg()));
+                sendPhoto.setCaption(eventString);
+                execute(sendChatAction);
+                execute(sendPhoto);
+            }
+        } catch (IOException | TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 

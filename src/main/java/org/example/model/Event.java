@@ -18,7 +18,7 @@ public class Event {
     @Override
     public String toString() {
         return '\'' + name + '\'' +
-                "\nType: " + description +
+                "\nDescription: " + description +
                 "\nAddress: " + address +
                 "\nDate: " + startDate +
                 "\nURL: " + url;
